@@ -72,7 +72,7 @@ def Client1(host, port):
 def Client2(host, port):
     ClientPrint(2, "Setting up a server socket to accept connections from client1 ({}:{})".format(host, port))
     c2_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    c2_server.bind((socket.gethostname(), 55551))
+    c2_server.bind((host, 55551))
     c2_server.listen(1) #only 1 connection needed
     conn, addr = c2_server.accept()
     ClientPrint(2, "Client1 has connected! ip,port: " + str(addr))
