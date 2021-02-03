@@ -4,6 +4,8 @@
 
 <b>Student2:</b> -
 
+Assignment for Networking 01 on the Hogeschool Rotterdam.
+
 </p>
 </br>
 <h2>Usage</h2>
