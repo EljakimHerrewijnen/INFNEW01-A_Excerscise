@@ -20,6 +20,9 @@ The program can be run in different modes:
 <li><b>client1 or 1:</b> Run automated. This creates 2 threads, client1 and client2. Both threads connect to the server. Client2 thread creates a socket server, to which client1 connects. After client1 has received data from the server it sends this data to client2 which than completes the request</li>
 
 </br>
+<b>When using 2 computers, make sure the port is opened in your firewall</b>
+
+</br>
 <h3>Example Usages: </h3>
 
 > python3 main.py automated
