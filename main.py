@@ -5,6 +5,9 @@ import time
 import json
 import threading
 
+Student_name = "Eljakim Herrewijnen"
+Student_number = "0912374"
+
 HOST= '145.24.222.133'
 PORT = 55550
 ID = 1
@@ -128,5 +131,7 @@ if __name__== "__main__":
         ID = 2
         Client2(arg.h2, arg.p2)
         print("Running as client2")
+    elif(arg.mode == "student"):
+        print("Student_name: {}\nStudent_number{}".format(Student_name, Student_number))
     else:
         Automatic()

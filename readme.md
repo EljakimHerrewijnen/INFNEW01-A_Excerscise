@@ -24,7 +24,6 @@ The program can be run in different modes:
 
 > python3 main.py automated
 
-result:
 ```shell
 $ python3 main.py automated
 Automated testing. We setup 2 sockets to the target server(145.24.222.133:55550).
@@ -82,3 +81,10 @@ Client2 Asusz87a-4790K:55551
 Running as client1
 ```
 
+> python3 main.py student
+
+```shell
+$ python3 main.py student
+Student_name: Eljakim Herrewijnen
+Student_number0912374
+```
