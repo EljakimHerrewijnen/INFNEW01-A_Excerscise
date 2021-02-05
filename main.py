@@ -54,7 +54,10 @@ def SetupSocket(id):
 def Client1(host, port):
     print("Client2 {}:{}".format(host, port))
     c1_c2_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    c1_c2_conn.connect((host, port))
+    print("Connecting to Client2. Make sure Client2 is up and running")
+    while(c1_c2_conn.connect_ex((host, port)) != 0):
+        time.sleep(.3)
+        print(".", end="", flush=True)
 
     ClientPrint(1, "Connected to Client2")
     client1 = SetupSocket(1)
@@ -105,7 +108,16 @@ def Automatic():
     thread1.join()
     thread2.join()
 
+def printHelp():
+    print("Example usage:")
+    print("    Automated: python3 main.py automated")
+    print("    Client2: python3 main.py 2 --h2 '192.168.4.150' --p2 55551")
+    print("    Client1: python3 main.py 1 --h2 '192.168.4.150' --p2 55551")
+    print("    Client2, custom host: python3 main.py 2 --host 145.24.222.133 --port 55550 --h2 '192.168.4.150' --p2 55551")
+    print("    Client1, custom host: python3 main.py 1 --host 145.24.222.133 --port 55550 --h2 '192.168.4.150' --p2 55551")
+
 if __name__== "__main__":
+    printHelp()
     args = argparse.ArgumentParser()
     args.add_argument('mode', help="Run as client1 or client2 or automatic(complete excerscise)", type=str)
     args.add_argument("--host", help="Define target host socket(requires --port)")
@@ -114,7 +126,7 @@ if __name__== "__main__":
     args.add_argument('--p2', help="define second client host port (requires --h2)", type=int)
     arg = args.parse_args()
     if(arg.host or arg.port):
-        if(not args.host or not args.port):
+        if(not arg.host or not arg.port):
             print("Define both host(--host) and port(--port). By default no host/port is required.")
             exit(0)
         else:
