@@ -52,15 +52,15 @@ def Client1(host, port):
     print("Client2 {}:{}".format(host, port))
     c1_c2_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to Client2. Make sure Client2 is up and running")
-    # while(c1_c2_conn.connect_ex((host, port)) != 0):
-    #     pass
+    while(c1_c2_conn.connect_ex((host, port)) != 0):
+        pass
 
     ClientPrint(1, "Connected to Client2")
     client1 = SetupSocket(1)
     r1 = client1.recv(1024).decode('utf-8')
     ClientPrint(1, "Connected. Message from server: " + r1)
     ClientPrint(1, "Sending our data without secret to server")
-    dat1 = json.dumps(GetMessage('0912374', '0000000', 'RETAKE', ID, 'Eljakim', '192.168.1.1', "", "")).encode('utf-8')
+    dat1 = json.dumps(GetMessage('0912374', '0000000', 'RETAKE', ID, 'Eljakim', host, "", "")).encode('utf-8')
     client1.send(dat1)
     dat = client1.recv(1024)
     ClientPrint(1, "Received data from server. Sending it via socket to Client2")
@@ -96,22 +96,15 @@ def Client2(host, port):
     ClientPrint(2, "Server responded with: " + str(r2))
     client2.close()
 
-
-
-# def Automatic():
-#     print("Automated testing. We setup 2 sockets to the target server({}:{}).\nClient2 deploys a socket server and client1 connects to this server.\nIP address for the server is just localhost, with port 55551".format(HOST, PORT))
-#     thread1 = threading.Thread(target=Client1, args=(socket.gethostname(), 55551, ))
-#     thread2 = threading.Thread(target=Client2, args=(socket.gethostname(), 55551, ))
-#     thread2.start()
-#     thread1.start()
-#     thread1.join()
-#     thread2.join()
-
 def printHelp():
     print("Example usage:")
-    print("You need 2 clients for this excercise. Run them as follows:")
-    print("Client1: python main.py 1")
-    print("Client2: python main.py 2")
+    print("You need 2 clients for this excercise. \nFor clients that run on 2 different machines you will need to specify the ip address of the second client:")
+    print("Client1:  python3 main.py 1")
+    print("Client2: python3 main.py 2 192.168.4.150 5551")
+
+    print("\nIf you run both clients on the same address this is not necessary:")
+    print("Client1: python3 main.py 1")
+    print("Client2: python3 main.py 2")
 
 if __name__== "__main__":
     printHelp()
@@ -120,8 +113,17 @@ if __name__== "__main__":
             print("Running as client 1. You need to open a second client to connect to this one")
             Client1(socket.gethostname(), 55551)
         elif(sys.argv[1] == "2" or sys.argv[1] == "client2"):
-            print("Running as client 2, connecting to client 1")
-            Client2(socket.gethostname(), 55551)
+            host = socket.gethostname()
+            port = 55551
+            if(len(sys.argv) == 4):
+                host = sys.argv[2]
+                port = sys.argv[3]
+            print(f"Running as client 2, connecting to client 1 with hostname/ip: {host} PORT: {port}")
+            try:
+                Client2(host, port)
+            except Exception as e:
+                print("Error while setting up socket")
+                print(str(e))
         else:
             printHelp()
     else:
