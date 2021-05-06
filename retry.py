@@ -1,9 +1,6 @@
-import argparse
 import sys
 import socket
-import time
 import json
-import threading
 
 Student_name = "Eljakim Herrewijnen"
 Student_number = "0912374"
@@ -55,11 +52,9 @@ def Client1(host, port):
     print("Client2 {}:{}".format(host, port))
     c1_c2_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to Client2. Make sure Client2 is up and running")
-    while(c1_c2_conn.connect_ex((host, port)) != 0):
-        time.sleep(.3)
-        # print(".", end="", flush=True)
+    # while(c1_c2_conn.connect_ex((host, port)) != 0):
+    #     pass
 
-        
     ClientPrint(1, "Connected to Client2")
     client1 = SetupSocket(1)
     r1 = client1.recv(1024).decode('utf-8')
@@ -99,52 +94,38 @@ def Client2(host, port):
     client2.send(json.dumps(client2_shared).encode('utf-8'))
     r2 = json.loads(client2.recv(1024).decode('utf-8'))
     ClientPrint(2, "Server responded with: " + str(r2))
+    client2.close()
 
-def Automatic():
-    print("Automated testing. We setup 2 sockets to the target server({}:{}).\nClient2 deploys a socket server and client1 connects to this server.\nIP address for the server is just localhost, with port 55551".format(HOST, PORT))
-    thread1 = threading.Thread(target=Client1, args=(socket.gethostname(), 55551, ))
-    thread2 = threading.Thread(target=Client2, args=(socket.gethostname(), 55551, ))
-    thread2.start()
-    thread1.start()
-    thread1.join()
-    thread2.join()
+
+
+# def Automatic():
+#     print("Automated testing. We setup 2 sockets to the target server({}:{}).\nClient2 deploys a socket server and client1 connects to this server.\nIP address for the server is just localhost, with port 55551".format(HOST, PORT))
+#     thread1 = threading.Thread(target=Client1, args=(socket.gethostname(), 55551, ))
+#     thread2 = threading.Thread(target=Client2, args=(socket.gethostname(), 55551, ))
+#     thread2.start()
+#     thread1.start()
+#     thread1.join()
+#     thread2.join()
 
 def printHelp():
     print("Example usage:")
-    print("    Automated: python3 main.py automated")
-    print("    Client2: python3 main.py 2 --h2 '192.168.4.150' --p2 55551")
-    print("    Client1: python3 main.py 1 --h2 '192.168.4.150' --p2 55551")
-    print("    Client2, custom host: python3 main.py 2 --host 145.24.222.133 --port 55550 --h2 '192.168.4.150' --p2 55551")
-    print("    Client1, custom host: python3 main.py 1 --host 145.24.222.133 --port 55550 --h2 '192.168.4.150' --p2 55551")
+    print("You need 2 clients for this excercise. Run them as follows:")
+    print("Client1: python main.py 1")
+    print("Client2: python main.py 2")
 
 if __name__== "__main__":
     printHelp()
-    args = argparse.ArgumentParser()
-    args.add_argument('mode', help="Run as client1 or client2 or automatic(complete excerscise)", type=str)
-    args.add_argument("--host", help="Define target host socket(requires --port)")
-    args.add_argument('--port', help="Define target host socket(requires --host)", type=int)
-    args.add_argument("--h2", help="define second client host ip --p2)")
-    args.add_argument('--p2', help="define second client host port (requires --h2)", type=int)
-    arg = args.parse_args()
-    if(arg.host or arg.port):
-        if(not arg.host or not arg.port):
-            print("Define both host(--host) and port(--port). By default no host/port is required.")
-            exit(0)
+    if(len(sys.argv) > 1):
+        if(sys.argv[1] == "1" or sys.argv[1] == "client1"):
+            print("Running as client 1. You need to open a second client to connect to this one")
+            Client1(socket.gethostname(), 55551)
+        elif(sys.argv[1] == "2" or sys.argv[1] == "client2"):
+            print("Running as client 2, connecting to client 1")
+            Client2(socket.gethostname(), 55551)
         else:
-            HOST = arg.host
-            PORT = arg.port
-    if(arg.mode == "client1" or arg.mode == "1" or arg.mode == 'client2' or arg.mode == "2"):
-        if(not arg.p2 or not arg.h2):
-            print("You need to define the host(--h2) and port (--p2) of the 2nd client!")
-            exit(0)
-    if(arg.mode == 'client1' or arg.mode == "1"):
-        Client1(arg.h2, arg.p2)
-        print("Running as client1")
-    elif(arg.mode == 'client2' or arg.mode == "2"):
-        ID = 2
-        Client2(arg.h2, arg.p2)
-        print("Running as client2")
-    elif(arg.mode == "student"):
-        print("Student_name: {}\nStudent_number{}".format(Student_name, Student_number))
+            printHelp()
     else:
-        Automatic()
+        printHelp()
+        #parse arguments
+    
+
