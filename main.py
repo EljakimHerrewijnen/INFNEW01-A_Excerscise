@@ -160,7 +160,7 @@ def main():
         print("You need to specify a program mode!")
         return
     if(sys.argv[1] == "C"):
-        if(len(sys.argv) == 3):
+        if(len(sys.argv) == 4):
             S_HOST = sys.argv[3].split(':')[0]
             S_PORT = sys.argv[3].split(':')[1]
         setupClient(sys.argv[2])
