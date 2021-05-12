@@ -1,0 +1,23 @@
+[
+    {
+        "Book title": "Things Fall Apart",
+        "Author": "Chinua Achebe",
+        "Status": "Borrowed",
+        "Borrowed by": "Bird Ramsey",
+        "Return date": "20-05-2021"
+    },
+    {
+        "Book title": "Fairy tales",
+        "Author": "Hans Christian Andersen",
+        "Status": "Available",
+        "Borrowed by": "",
+        "Return date": ""
+    },
+    {
+        "Book title": "The Divine Comedy",
+        "Author": "Dante Alighieri",
+        "Status": "Availabe",
+        "Borrowed by": "",
+        "Return date": ""
+    }
+]

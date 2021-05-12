@@ -1,150 +1,191 @@
-import argparse
 import sys
-import socket
-import time
 import json
-import threading
+import socket
 
-Student_name = "Eljakim Herrewijnen"
-Student_number = "0912374"
+student = "0912374: Eljakim Herrewijnen"
 
-HOST= '145.24.222.133'
-PORT = 55550
-ID = 1
+HS_PORT = 3002
+S_PORT = 3001
+S_HOST = "localhost"
+HS_HOST = "localhost"
+program_id = "[Client]"
 
-client1 = None
-client1_shared = None
-c1_c2_conn = None
-client2 = None
-client2_shared = None
-c2_server = None
+def setupClient(book1):
+    print(f"{program_id}Connecting to server on: {S_HOST}:{S_PORT}")
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while(client.connect_ex((S_HOST, S_PORT)) != 0):
+        pass
+    print(f"{program_id}Connected! Sending intial hello message")
+    message = {}
+    message["Title"] = "Hello"
+    message["Sender"] = "User1"
+    client.send(json.dumps(message).encode('utf-8'))
+    print(f"{program_id}Received: {client.recv(1024).decode('utf-8')}")
 
-data = {
-    "studentnr1": "Your_studentnumber",
-    "studentnr2": "The student number of your teammate",
-    "classname": "YOURCLASSCODE",
-    "clientid": "-1",
-    "teamname": "YOUR TEAM NAME SHOULD BE HERE",
-    "ip": "YOUROWNIPADDRESS",
-    "secret": "",
-    "status": ""
-}
+    #request book
+    message = {}
+    message["Title"] = "BookInquiry"
+    message["BookName"] = book1
+    client.send(json.dumps(message).encode('utf-8'))
+    dat = client.recv(1024)
+    if(dat != b''):
+        book = json.loads(dat.decode('utf-8'))
+        print(f"{program_id}Received: {book}")
+        if(book['Status'] == ""):
+            print("Book not found!")
+        elif(book['Status'] == "Borrowed"):
+            print(f"{program_id}Book is borrowed, Inquiring by user details...")
+            message = {}
+            message["Title"] = "UserInquiry"
+            message["UserName"] = book['Borrowed by']
+            client.send(json.dumps(message).encode('utf-8'))
+            user = json.loads(client.recv(1024).decode('utf-8'))
+            print(user)
+        else:
+            print(book)
 
-def ClientPrint(id, msg):
-    print("[Client{}] {}".format(id, msg))
+    print(f"{program_id}Done. Sending Quit message to server and exiting")
+    #Quit
+    message = {}
+    message["Title"] = "Quit"
+    client.send(json.dumps(message).encode('utf-8'))
+    client.close()
 
-def GetMessage(id1, id2, classcode, clientid, teamname, ip, secret, status):
-    t = data
-    t['studentnr1'] = id1
-    t['studentnr2'] = id2
-    t['classname'] = classcode
-    t['clientid'] = clientid
-    t['teamname'] = teamname
-    t['ip'] = ip
-    t['secret'] = secret
-    t['status'] = status
-    return t
 
-def SetupSocket(id):
-    print("[Client{}] Establishing connection".format(id))
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((HOST, PORT))
-    return sock
 
-def Client1(host, port):
-    print("Client2 {}:{}".format(host, port))
-    c1_c2_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print("Connecting to Client2. Make sure Client2 is up and running")
-    while(c1_c2_conn.connect_ex((host, port)) != 0):
-        time.sleep(.3)
-        # print(".", end="", flush=True)
+def setupServer():
+    program_id = "[Server]"
+    print(f"{program_id}Server starting. Connecting to Helper Server...")
+    hs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while(hs.connect_ex((HS_HOST, HS_PORT)) != 0):
+        pass
+    print(f"{program_id}Hosting server on: {S_HOST}:{S_PORT}")
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((S_HOST, S_PORT))
+    server.listen(1) #only 1 connection needed
+    conn, addr = server.accept()
+    print(f"{program_id}Client1 has connected! {str(addr)} ")
 
-        
-    ClientPrint(1, "Connected to Client2")
-    client1 = SetupSocket(1)
-    r1 = client1.recv(1024).decode('utf-8')
-    ClientPrint(1, "Connected. Message from server: " + r1)
-    ClientPrint(1, "Sending our data without secret to server")
-    dat1 = json.dumps(GetMessage('0912374', '0000000', 'RETAKE', ID, 'Eljakim', '192.168.1.1', "", "")).encode('utf-8')
-    client1.send(dat1)
-    dat = client1.recv(1024)
-    ClientPrint(1, "Received data from server. Sending it via socket to Client2")
-    c1_c2_conn.send(dat)
-    ClientPrint(1, "Closing client1 socket")
-    client1.close()
+    while(True):
+        dat = conn.recv(1024)
+        if(dat != b''):
+            data = json.loads(dat.decode('utf-8'))
+            print(f"{program_id}Received: {data}")
+            #receive hello
+            if(data["Title"] == "Hello"):
+                #send welcome
+                welcome = {}
+                welcome["Title"] = "Hello"
+                welcome["Content"]: "Welcome"
+                conn.send(json.dumps(welcome).encode("utf-8"))
+            elif(data["Title"] == "BookInquiry" or data["Title"] == "UserInquiry"):
+                print(f"{program_id}Inquiring: {data}")
+                hs.send(dat)
+                conn.send(hs.recv(1024))
+            elif(data["Title"] == "Quit"):
+                q = {}
+                q['Title'] = "Quit"
+                hs.send(json.dumps(q).encode('utf-8'))
+                conn.close()
+                server.close()
+                hs.close()
+                return
+        else:
+            pass
 
-def Client2(host, port):
-    ClientPrint(2, "Setting up a server socket to accept connections from client1 ({}:{})".format(host, port))
-    c2_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    c2_server.bind((host, 55551))
-    c2_server.listen(1) #only 1 connection needed
-    conn, addr = c2_server.accept()
-    ClientPrint(2, "Client1 has connected! ip,port: " + str(addr))
-    ClientPrint(2, "Waiting for message from client1")
-    client2_shared = json.loads(conn.recv(1024).decode('utf-8'))
-    ClientPrint(2, "Received data from client1. status: " + client2_shared['status'])
+    
 
-    #Connect to server
-    client2 = SetupSocket(2)
-    r2 = client2.recv(1024).decode('utf-8')
-    ClientPrint(2, "Connected. Message from server: " + r2)
 
-    #alter data to our own
-    temp = client2_shared['studentnr2']
-    client2_shared['studentnr2'] = client2_shared['studentnr1']
-    client2_shared['studentnr1'] = temp
-    client2_shared['clientid'] = 2
-    client2_shared['ip'] = host
-    ClientPrint(2, "Done, sending data to server")
-    client2.send(json.dumps(client2_shared).encode('utf-8'))
-    r2 = json.loads(client2.recv(1024).decode('utf-8'))
-    ClientPrint(2, "Server responded with: " + str(r2))
-
-def Automatic():
-    print("Automated testing. We setup 2 sockets to the target server({}:{}).\nClient2 deploys a socket server and client1 connects to this server.\nIP address for the server is just localhost, with port 55551".format(HOST, PORT))
-    thread1 = threading.Thread(target=Client1, args=(socket.gethostname(), 55551, ))
-    thread2 = threading.Thread(target=Client2, args=(socket.gethostname(), 55551, ))
-    thread2.start()
-    thread1.start()
-    thread1.join()
-    thread2.join()
+def setupHelperServer(users, books):
+    program_id = "[HelperServer]"
+    print(f"{program_id}Hosting server on: {HS_HOST}:{HS_PORT}")
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #Tell the socket to be reused if closed unexpectedly
+    server.bind((HS_HOST, HS_PORT))
+    server.listen(1) #only 1 connection needed
+    conn, addr = server.accept()
+    print(f"{program_id}Server has connected! ip,port: {str(addr)}")
+    while(True):
+        dat = conn.recv(1024)
+        if(dat != b''):
+            data = json.loads(dat.decode('utf-8'))
+            print(f"{program_id}Received: {data}")
+            if(data["Title"] == "BookInquiry"):
+                print(f"{program_id}Searching for: {data['BookName']}")
+                found = False
+                for x in books:
+                    if(x['Book title'] == data['BookName']):
+                        conn.send(json.dumps(x).encode('utf-8'))
+                        found = True
+                if(not found):
+                    notfound = x
+                    notfound["Status"] = ""
+                    conn.send(json.dumps(notfound).encode("utf-8"))
+            elif(data["Title"] == "UserInquiry"):
+                print(f"{program_id}Searching for: {data['UserName']}")
+                found = False
+                for x in users:
+                    if(x['Name'] == data['UserName']):
+                        conn.send(json.dumps(x).encode('utf-8'))
+                        found = True
+                if(not found):
+                    notfound = x
+                    notfound["Name"] = ""
+                    conn.send(json.dumps(notfound).encode("utf-8"))
+            elif(data["Title"] == "Quit"):
+                conn.close()
+                server.close()
+                return
+        else:
+            pass
 
 def printHelp():
-    print("Example usage:")
-    print("    Automated: python3 main.py automated")
-    print("    Client2: python3 main.py 2 --h2 '192.168.4.150' --p2 55551")
-    print("    Client1: python3 main.py 1 --h2 '192.168.4.150' --p2 55551")
-    print("    Client2, custom host: python3 main.py 2 --host 145.24.222.133 --port 55550 --h2 '192.168.4.150' --p2 55551")
-    print("    Client1, custom host: python3 main.py 1 --host 145.24.222.133 --port 55550 --h2 '192.168.4.150' --p2 55551")
+    print("Networking retake assignment:")
+    print(student)
+    print("This script runs in 3 different modes: Client(C) or Server(S) or Helper Server(HS):")
+    print("Usage:")
+    print("Client:")
+    print("\t main.py C Optional: <ipaddress/host to server>:<port>")
+    print("\t Connects by default to localhost:3001")
+    print("Server:")
+    print("\t main.py S Optional: <ipaddress/host to helper server>:<port> Optional: <ipaddress/host NIC to run from>:<port>")
+    print("\t Server runs by default on port 3001")
+    print("Helper Server:")
+    print("\t main.py HS users.json books.json Optional: <ipaddress/host NIC to run from>:<port>")
+    print("\t Server runs by default on port 3002")
 
-if __name__== "__main__":
-    printHelp()
-    args = argparse.ArgumentParser()
-    args.add_argument('mode', help="Run as client1 or client2 or automatic(complete excerscise)", type=str)
-    args.add_argument("--host", help="Define target host socket(requires --port)")
-    args.add_argument('--port', help="Define target host socket(requires --host)", type=int)
-    args.add_argument("--h2", help="define second client host ip --p2)")
-    args.add_argument('--p2', help="define second client host port (requires --h2)", type=int)
-    arg = args.parse_args()
-    if(arg.host or arg.port):
-        if(not arg.host or not arg.port):
-            print("Define both host(--host) and port(--port). By default no host/port is required.")
-            exit(0)
+def main():
+    if(len(sys.argv) < 2):
+        printHelp()
+        print("You need to specify a program mode!")
+        return
+    if(sys.argv[1] == "C"):
+        if(len(sys.argv) == 3):
+            S_HOST = sys.argv[3].split(':')[0]
+            S_PORT = sys.argv[3].split(':')[1]
+        setupClient(sys.argv[2])
+    elif(sys.argv[1] == "S"):
+        if(len(sys.argv) == 3):
+            HS_HOST = sys.argv[3].split(':')[0]
+            HS_PORT = sys.argv[3].split(':')[1]
+        elif(len(sys.argv) == 4):
+            HS_HOST = sys.argv[3].split(':')[0]
+            HS_PORT = sys.argv[3].split(':')[1]
+            S_HOST = sys.argv[4].split(':')[0]
+            S_PORT = sys.argv[4].split(':')[1]
+        setupServer()
+    elif(sys.argv[1] == "HS"):
+        if(len(sys.argv) < 4):
+            printHelp()
         else:
-            HOST = arg.host
-            PORT = arg.port
-    if(arg.mode == "client1" or arg.mode == "1" or arg.mode == 'client2' or arg.mode == "2"):
-        if(not arg.p2 or not arg.h2):
-            print("You need to define the host(--h2) and port (--p2) of the 2nd client!")
-            exit(0)
-    if(arg.mode == 'client1' or arg.mode == "1"):
-        Client1(arg.h2, arg.p2)
-        print("Running as client1")
-    elif(arg.mode == 'client2' or arg.mode == "2"):
-        ID = 2
-        Client2(arg.h2, arg.p2)
-        print("Running as client2")
-    elif(arg.mode == "student"):
-        print("Student_name: {}\nStudent_number{}".format(Student_name, Student_number))
+            users = json.load(open(sys.argv[2], "r"))
+            books = json.load(open(sys.argv[3], "r"))
+            if(len(sys.argv) == 5):
+                HS_HOST = sys.argv[4].split(':')[0]
+                HS_PORT = sys.argv[4].split(':')[1]
+            setupHelperServer(users, books)
     else:
-        Automatic()
+        printHelp()
+
+if __name__ == "__main__":
+    main()
